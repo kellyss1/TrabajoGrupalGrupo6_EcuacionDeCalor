@@ -1,0 +1,3 @@
+C:/tools/TrabajoGrupalGrupo6_EcuacionDeCalor/build/CMakeFiles/EcuacionCalor.dir
+C:/tools/TrabajoGrupalGrupo6_EcuacionDeCalor/build/CMakeFiles/edit_cache.dir
+C:/tools/TrabajoGrupalGrupo6_EcuacionDeCalor/build/CMakeFiles/rebuild_cache.dir
