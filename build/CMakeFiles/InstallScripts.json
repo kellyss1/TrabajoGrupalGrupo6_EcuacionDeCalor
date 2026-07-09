@@ -1,0 +1,11 @@
+{
+	"Configs" : 
+	[
+		"Debug"
+	],
+	"InstallScripts" : 
+	[
+		"C:/tools/TrabajoGrupalGrupo6_EcuacionDeCalor/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
