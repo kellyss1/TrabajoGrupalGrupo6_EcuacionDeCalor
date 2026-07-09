@@ -1,0 +1,20 @@
+# Ignorar cualquier carpeta build en cualquier proyecto
+**/build/
+
+# Archivos temporales de CMake / Ninja
+**/CMakeCache.txt
+**/CMakeFiles/
+**/.cmake/
+**/*.ninja
+**/.ninja_*
+**/compile_commands.json
+
+# Ejecutables y binarios
+**/*.exe
+**/*.dll
+**/*.obj
+**/*.o
+**/*.a
+**/*.lib
+**/*.so
+**/*.out
