@@ -115,7 +115,7 @@ void ecuacionCalorSerial(
         for (uint32_t i = 0; i < Nx; i++)
         {
             uint32_t idx = j * Nx + i;
-            int indice = static_cast<int>((u[idx] / 100.0) * (color_ramp.size() - 1));
+            int indice = static_cast<int>((1.0 - u[idx] / 100.0) * (color_ramp.size() - 1));
             if (indice < 0) indice = 0;
             if (indice >= static_cast<int>(color_ramp.size())) indice = color_ramp.size() - 1;
             pixel_buffer[idx] = color_ramp[indice];
