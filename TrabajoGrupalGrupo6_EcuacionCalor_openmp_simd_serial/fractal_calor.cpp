@@ -75,7 +75,7 @@ void ecuacionCalorSerial(
     static double residuo_actual = 1e9;
     static double r = 0.0;
     static bool inicializado = false;
-    static bool estable = true;   // <-- NUEVO: bandera de estabilidad CFL
+    static bool estable = true;   // bandera de estabilidad 
 
     if (!inicializado || u.size() != Nx * Ny)
     {
@@ -86,7 +86,7 @@ void ecuacionCalorSerial(
         double hx = Lx / Nx, hy = Ly / Ny;
         r = alpha * dt / (hx * hy);
 
-        // --- Chequeo de la condicion CFL: r debe ser <= 0.25 ---
+        //chequeo de la condicion CFL: r debe ser <= 0.25
         estable = (r <= 0.25);
 
         iter_actual = 0;

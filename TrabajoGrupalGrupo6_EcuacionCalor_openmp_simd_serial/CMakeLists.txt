@@ -17,6 +17,8 @@ find_package(SFML COMPONENTS
 add_executable(EcuacionCalor 
 main.cpp
 fractal_calor.cpp
+ecuacion_calor_openmp.cpp
+fractal_calor_simd.cpp
 palette.cpp
 )
 

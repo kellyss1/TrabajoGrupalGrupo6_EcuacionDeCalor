@@ -8,6 +8,8 @@
 #include <cstdint>
 #include <complex>
 #include "fractal_calor.h"
+#include "ecuacion_calor_openmp.h"
+#include "fractal_calor_simd.h"
 
 // Pamarametro img
 #define ANCHO 1600
@@ -144,13 +146,35 @@ int main()
         }
         else if (r_type == runtime_type::SIMD)
         {
-            // julia_simd(x_min, y_min, x_max, y_max, ANCHO, ALTO, pixel_buffer);
-            // mode = "SIMD";
+            uint32_t pasos = 0;
+            if (modo_continuo)
+                pasos = 1; // 1 paso por frame en modo continuo
+            else if (solicitar_paso)
+            {
+                pasos = 20; // 20 pasos, una sola vez
+                solicitar_paso = false;
+            }
+
+            ecuacion_Calor_SIMD(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
+                                pasos, pixel_buffer,
+                                &iter_actual_ui, &residuo_ui, &mflops_ui);
+            mode = "SIMD";
         }
         else if (r_type == runtime_type::OPENMP)
         {
-            // julia_openmp_regiones(x_min, y_min, x_max, y_max, ANCHO, ALTO, pixel_buffer);
-            // mode = fmt::format("Julia OPENMP_REGIONES (Threads: {})", thread_count);
+            uint32_t pasos = 0;
+            if (modo_continuo)
+                pasos = 1; // 1 paso por frame en modo continuo
+            else if (solicitar_paso)
+            {
+                pasos = 20; // 20 pasos, una sola vez
+                solicitar_paso = false;
+            }
+
+            ecuacion_calor_openmp_regiones(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
+                                pasos, pixel_buffer,
+                                &iter_actual_ui, &residuo_ui, &mflops_ui);
+            mode = "OPENMP";
         }
 
         texture.update((const uint8_t *)pixel_buffer);
