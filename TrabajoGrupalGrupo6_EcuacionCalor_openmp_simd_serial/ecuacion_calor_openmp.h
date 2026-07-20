@@ -17,8 +17,8 @@ void ecuacion_calor_openmp_regiones(
     uint32_t *iter_out,     // lee la iteracion actual
     double *residuo_out,    // lee el residuo actual
     double *mflops_out,     // lee el rendimiento en MFlops
-    uint32_t *threads_out   // lee el numero de hilos activos
-    
+    uint32_t *threads_out,   // lee el numero de hilos activos
+    int num_threads
 );
 
 

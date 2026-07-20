@@ -33,6 +33,9 @@ double mflops_ui = 0.0;
 uint32_t threads_ui = 0;
 double tiempo_ejecucion_ui = 0.0;
 bool acumulando_tiempo_continuo = false;
+//configuracion numero de hilos
+int num_threads = 4;
+
 
 // textura (uint32_t tipo de dato sin signo de 16/32/64 etc)
 uint32_t *pixel_buffer = nullptr;
@@ -46,14 +49,7 @@ enum class runtime_type
 
 int main()
 {
-    // int thread_count;
-    // #pragma omp parallel
-    //{
-    // #pragma opm master
-    //{
-    //  thread_count = omp_get_num_threads();
-    //}
-    // }
+
     runtime_type r_type = runtime_type::SERIAL_1;
     // en un solo vector puede representar todo la img ya sea por filas o columnas
     pixel_buffer = new uint32_t[ANCHO * ALTO];
@@ -238,7 +234,7 @@ int main()
 
                 ecuacion_calor_openmp_regiones(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
                                     pasos, pixel_buffer,
-                                    &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui);
+                                    &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui, num_threads);
                 tiempo_ejecucion_ui += solver_clock.getElapsedTime().asSeconds() * 1000.0;
             }
             else
@@ -251,7 +247,7 @@ int main()
                     sf::Clock solver_clock;
                     ecuacion_calor_openmp_regiones(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
                                         pasos, pixel_buffer,
-                                        &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui);
+                                        &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui, num_threads);
                     if (iter_actual_ui < static_cast<uint32_t>(max_iteraciones))
                         tiempo_ejecucion_ui = solver_clock.getElapsedTime().asSeconds() * 1000.0;
                 }

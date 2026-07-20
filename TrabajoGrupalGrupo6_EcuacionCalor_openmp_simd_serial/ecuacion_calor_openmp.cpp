@@ -26,26 +26,28 @@ static void calor_acotado_openmp(
     double r, double tol,
     uint32_t &iter, double &residuo,
     uint32_t pasos_por_llamada,
-    uint32_t max_iter)
+    uint32_t max_iter,
+    int num_threads)
 {
     uint32_t hechos = 0;
-    //variable compartida
+    // variable compartida
     double suma_global = 0.0;
 
-
-    // region paralela abierta afuera del while para no crear y destruir hilos en cada iteracion
-    #pragma omp parallel
+// region paralela abierta afuera del while para no crear y destruir hilos en cada iteracion
+#pragma omp parallel num_threads(num_threads)
     {
         int thread_count = omp_get_num_threads();
         int thread_id = omp_get_thread_num();
 
-        //reparto manual de las filas internas entre los hilos
+        // reparto manual de las filas internas entre los hilos
         uint32_t filas_internas = Ny - 2;
-        uint32_t delta = (filas_internas + thread_count - 1) / thread_count; //techo para evitar casteos
+        uint32_t delta = (filas_internas + thread_count - 1) / thread_count; // techo para evitar casteos
         uint32_t start = 1 + thread_id * delta;
         uint32_t end = start + delta;
-        if (end > Ny - 1) end = Ny - 1;
-        if (start > Ny - 1) start = Ny - 1;
+        if (end > Ny - 1)
+            end = Ny - 1;
+        if (start > Ny - 1)
+            start = Ny - 1;
 
         while (iter < max_iter &&
                residuo > tol &&
@@ -58,8 +60,8 @@ static void calor_acotado_openmp(
                     u_new[idx] = stencil(u, i, j, Nx, r);
                 }
 
-            //barrera para que nadie calcule el residuo hasta que todos terminen su franja
-            #pragma omp barrier
+// barrera para que nadie calcule el residuo hasta que todos terminen su franja
+#pragma omp barrier
 
             double suma_local = 0.0;
             for (uint32_t j = start; j < end; j++)
@@ -70,15 +72,15 @@ static void calor_acotado_openmp(
                     suma_local += d * d;
                 }
 
-            //reduccion del residuo local de cada hilo hacia la variable comparida
-            #pragma omp atomic
+// reduccion del residuo local de cada hilo hacia la variable comparida
+#pragma omp atomic
             suma_global += suma_local;
 
-            //barrera para esperar a que todos los hilos hayan sumado su parte
-            #pragma omp barrier
+// barrera para esperar a que todos los hilos hayan sumado su parte
+#pragma omp barrier
 
-            //solo un hilo hace el cierre 
-            #pragma omp single
+// solo un hilo hace el cierre
+#pragma omp single
             {
                 residuo = sqrt(suma_global / (Nx * Ny));
                 suma_global = 0.0;
@@ -91,7 +93,7 @@ static void calor_acotado_openmp(
                 hechos++;
             }
 
-            //gracias al single que trae una barrera implicita ningun hilo entra a la siguiente iteracion con informacion vieja
+            // gracias al single que trae una barrera implicita ningun hilo entra a la siguiente iteracion con informacion vieja
         }
     }
 }
@@ -106,25 +108,30 @@ void ecuacion_calor_openmp_regiones(
     uint32_t *iter_out,
     double *residuo_out,
     double *mflops_out,
-    uint32_t *threads_out)
+    uint32_t *threads_out,
+    int num_threads)
 {
     static std::vector<double> u, u_new;
     static uint32_t iter_actual = 0;
     static double residuo_actual = 1e9;
     static double r = 0.0;
     static bool inicializado = false;
-    static bool estable = true;  // bandera de estabilidad 
+    static bool estable = true; // bandera de estabilidad
 
     if (!inicializado || u.size() != Nx * Ny)
     {
         u.assign(Nx * Ny, 0.0);
         u_new.assign(Nx * Ny, 0.0);
-        for (uint32_t i = 0; i < Nx; ++i) { u[i] = 100.0; u_new[i] = 100.0; }
+        for (uint32_t i = 0; i < Nx; ++i)
+        {
+            u[i] = 100.0;
+            u_new[i] = 100.0;
+        }
 
         double hx = Lx / Nx, hy = Ly / Ny;
         r = alpha * dt / (hx * hy);
 
-        //chequeo de la condicion CFL: r debe ser <= 0.25
+        // chequeo de la condicion CFL: r debe ser <= 0.25
         estable = (r <= 0.25);
 
         iter_actual = 0;
@@ -139,7 +146,7 @@ void ecuacion_calor_openmp_regiones(
     if (estable)
     {
         calor_acotado_openmp(u, u_new, Nx, Ny, r, tol, iter_actual, residuo_actual,
-                              pasos_a_ejecutar, max_iter);
+                             pasos_a_ejecutar, max_iter,num_threads);
     }
 
     auto t1 = std::chrono::high_resolution_clock::now();
@@ -150,29 +157,32 @@ void ecuacion_calor_openmp_regiones(
     double flops_totales = (double)pasos_hechos * (Nx - 2) * (Ny - 2) * 7.0;
     double mflops = (segundos > 0.0) ? (flops_totales / segundos) / 1.0e6 : 0.0;
 
-    //pntar el pixel:buffer con reparto manual entre hilos
-    #pragma omp parallel
+// pntar el pixel:buffer con reparto manual entre hilos
+#pragma omp parallel num_threads(num_threads)
     {
         int thread_count = omp_get_num_threads();
         int thread_id = omp_get_thread_num();
 
-        #pragma omp single
+#pragma omp single
         {
             thread_count_observed = static_cast<uint32_t>(thread_count);
         }
 
-        uint32_t delta = (Ny + thread_count - 1) / thread_count; //techo para evitar casteos
+        uint32_t delta = (Ny + thread_count - 1) / thread_count; // techo para evitar casteos
         uint32_t start = thread_id * delta;
         uint32_t end = start + delta;
-        if (end > Ny) end = Ny;
+        if (end > Ny)
+            end = Ny;
 
         for (uint32_t j = start; j < end; j++)
             for (uint32_t i = 0; i < Nx; i++)
             {
                 uint32_t idx = j * Nx + i;
                 int indice = static_cast<int>((1.0 - u[idx] / 100.0) * (color_ramp.size() - 1));
-                if (indice < 0) indice = 0;
-                if (indice >= static_cast<int>(color_ramp.size())) indice = color_ramp.size() - 1;
+                if (indice < 0)
+                    indice = 0;
+                if (indice >= static_cast<int>(color_ramp.size()))
+                    indice = color_ramp.size() - 1;
                 pixel_buffer[idx] = color_ramp[indice];
             }
     }
