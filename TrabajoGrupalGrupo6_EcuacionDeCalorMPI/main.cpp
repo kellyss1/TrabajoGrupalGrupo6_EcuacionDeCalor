@@ -19,7 +19,7 @@
 uint32_t Nx = 1024;
 uint32_t Ny = 1024;
 double Lx = 1.0, Ly = 1.0, alpha = 0.25, dt = 5.0e-7, tol = 1.0e-4;
-int max_iteraciones = 1000;
+int max_iteraciones = 10000;
 bool modo_continuo = false;
 bool solicitar_paso = false;
 int running = 1;
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
                 "Backend: MPI ({} procs) | Iter: {}/{} | Residuo L2: {:.6e} | MFLOPS total: {:.1f} | Modo: {} | FPS: {}{}",
                 nprocs, iter_ui, max_iteraciones, residuo_ui, mflops_total_ui,
                 modo_continuo ? "CONTINUO" : "PASO A PASO", fps,
-                modo_continuo ? fmt::format("\n| Tiempo total de ejecucion: {}", format_time_hms(tiempo_ejecucion_ui)) : std::string(""));
+                modo_continuo ? fmt::format("\nTiempo total de ejecucion: {}", format_time_hms(tiempo_ejecucion_ui)) : std::string(""));
             text.setString(msg);
 
             window.clear();
