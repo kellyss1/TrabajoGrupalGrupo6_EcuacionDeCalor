@@ -21,6 +21,25 @@ void ecuacion_calor_openmp_regiones(
     int num_threads
 );
 
+//misma firma pero con AVX2 
+void ecuacion_calor_openmp_simd(
+    uint32_t Nx,
+    uint32_t Ny,
+    double Lx,
+    double Ly,
+    double alpha,
+    double dt,
+    uint32_t max_iter,
+    double tol,
+    uint32_t pasos_a_ejecutar,
+    uint32_t *pixel_buffer,
+    uint32_t *iter_out,
+    double *residuo_out,
+    double *mflops_out,
+    uint32_t *threads_out,
+    int num_threads
+);
+
 
 
 #endif

@@ -45,6 +45,7 @@ enum class runtime_type
     SERIAL_1 = 0,
     SIMD,
     OPENMP,
+    OPENMP_SIMD,
 };
 
 int main()
@@ -72,7 +73,7 @@ int main()
     text.setPosition({10, 10});
     text.setStyle(sf::Text::Bold);
 
-    std::string options = "Options: [1]Serial [2]SIMD [3]OPENMP | [Space] Modo continuo/pausa | [Enter] Paso a paso";
+    std::string options = "Options: [1]Serial [2]SIMD [3]OPENMP [4]OPENMP+SIMD | [Space] Modo continuo/pausa | [Enter] Paso a paso";
 
     sf::Text textoptions(font, options, 20);
 
@@ -118,6 +119,11 @@ int main()
                     break;
                 case sf::Keyboard::Scan::Num3:
                     r_type = runtime_type::OPENMP;
+                    tiempo_ejecucion_ui = 0.0;
+                    acumulando_tiempo_continuo = false;
+                    break;
+                case sf::Keyboard::Scan::Num4:
+                    r_type = runtime_type::OPENMP_SIMD;
                     tiempo_ejecucion_ui = 0.0;
                     acumulando_tiempo_continuo = false;
                     break;
@@ -254,6 +260,51 @@ int main()
             }
             mode = "OPENMP";
         }
+        else if (r_type == runtime_type::OPENMP_SIMD)
+        {
+            uint32_t pasos = 0;
+            if (modo_continuo)
+                pasos = 1; // 1 paso por frame en modo continuo
+            else if (solicitar_paso)
+            {
+                pasos = 20; // 20 pasos, una sola vez
+                solicitar_paso = false;
+            }
+
+            bool solver_terminado = iter_actual_ui >= static_cast<uint32_t>(max_iteraciones);
+
+            if (modo_continuo && !solver_terminado)
+            {
+                if (!acumulando_tiempo_continuo)
+                {
+                    tiempo_ejecucion_ui = 0.0;
+                    acumulando_tiempo_continuo = true;
+                }
+
+                sf::Clock solver_clock;
+
+                ecuacion_calor_openmp_simd(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
+                                    pasos, pixel_buffer,
+                                    &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui, num_threads);
+                tiempo_ejecucion_ui += solver_clock.getElapsedTime().asSeconds() * 1000.0;
+            }
+            else
+            {
+                if (!solver_terminado)
+                {
+                    acumulando_tiempo_continuo = false;
+                    tiempo_ejecucion_ui = 0.0;
+
+                    sf::Clock solver_clock;
+                    ecuacion_calor_openmp_simd(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
+                                        pasos, pixel_buffer,
+                                        &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui, num_threads);
+                    if (iter_actual_ui < static_cast<uint32_t>(max_iteraciones))
+                        tiempo_ejecucion_ui = solver_clock.getElapsedTime().asSeconds() * 1000.0;
+                }
+            }
+            mode = "OPENMP+SIMD";
+        }
 
         texture.update((const uint8_t *)pixel_buffer);
 
@@ -281,7 +332,7 @@ int main()
         if (modo_continuo)
             extra_info = fmt::format("\nTiempo total de ejecucion: {}", format_time_hms(tiempo_ejecucion_ui));
 
-        if (r_type == runtime_type::OPENMP)
+        if (r_type == runtime_type::OPENMP || r_type == runtime_type::OPENMP_SIMD)
         {
             extra_info = fmt::format("\nHilos OpenMP: {}{}",
                                      threads_ui,
