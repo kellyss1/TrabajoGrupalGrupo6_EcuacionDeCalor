@@ -33,9 +33,9 @@ double mflops_ui = 0.0;
 uint32_t threads_ui = 0;
 double tiempo_ejecucion_ui = 0.0;
 bool acumulando_tiempo_continuo = false;
-//configuracion numero de hilos
-int num_threads = 4;
-
+// configuracion numero de hilos
+int num_threads = 12;
+int max_threads_disponibles = omp_get_max_threads(); // límite del sistema
 
 // textura (uint32_t tipo de dato sin signo de 16/32/64 etc)
 uint32_t *pixel_buffer = nullptr;
@@ -73,12 +73,12 @@ int main()
     text.setPosition({10, 10});
     text.setStyle(sf::Text::Bold);
 
-    std::string options = "Options: [1]Serial [2]SIMD [3]OPENMP [4]OPENMP+SIMD | [Space] Modo continuo/pausa | [Enter] Paso a paso";
+    std::string options = "Options: [1]Serial [2]SIMD [3]OPENMP [4]OPENMP+SIMD | \n[Space] Modo continuo/pausa | [Enter] Paso a paso |\n[Up/Down] Iteraciones Maximas +/- |\n[Left/Right] Numero de Hilos +/-";
 
     sf::Text textoptions(font, options, 20);
 
     textoptions.setStyle(sf::Text::Bold);
-    textoptions.setPosition({10, window.getView().getSize().y - 40});
+    textoptions.setPosition({10, window.getView().getSize().y - 120});
     // FPS
     int frames = 0;
     int fps = 0;
@@ -106,6 +106,16 @@ int main()
                     max_iteraciones -= 1000;
                     if (max_iteraciones < 1000)
                         max_iteraciones = 1000;
+                    break;
+                case sf::Keyboard::Scan::Right:
+                    num_threads++;
+                    if (num_threads > max_threads_disponibles)
+                        num_threads = max_threads_disponibles;
+                    break;
+                case sf::Keyboard::Scan::Left:
+                    num_threads--;
+                    if (num_threads < 1)
+                        num_threads = 1;
                     break;
                 case sf::Keyboard::Scan::Num1:
                     r_type = runtime_type::SERIAL_1;
@@ -239,8 +249,8 @@ int main()
                 sf::Clock solver_clock;
 
                 ecuacion_calor_openmp_regiones(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
-                                    pasos, pixel_buffer,
-                                    &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui, num_threads);
+                                               pasos, pixel_buffer,
+                                               &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui, num_threads);
                 tiempo_ejecucion_ui += solver_clock.getElapsedTime().asSeconds() * 1000.0;
             }
             else
@@ -252,8 +262,8 @@ int main()
 
                     sf::Clock solver_clock;
                     ecuacion_calor_openmp_regiones(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
-                                        pasos, pixel_buffer,
-                                        &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui, num_threads);
+                                                   pasos, pixel_buffer,
+                                                   &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui, num_threads);
                     if (iter_actual_ui < static_cast<uint32_t>(max_iteraciones))
                         tiempo_ejecucion_ui = solver_clock.getElapsedTime().asSeconds() * 1000.0;
                 }
@@ -284,8 +294,8 @@ int main()
                 sf::Clock solver_clock;
 
                 ecuacion_calor_openmp_simd(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
-                                    pasos, pixel_buffer,
-                                    &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui, num_threads);
+                                           pasos, pixel_buffer,
+                                           &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui, num_threads);
                 tiempo_ejecucion_ui += solver_clock.getElapsedTime().asSeconds() * 1000.0;
             }
             else
@@ -297,8 +307,8 @@ int main()
 
                     sf::Clock solver_clock;
                     ecuacion_calor_openmp_simd(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
-                                        pasos, pixel_buffer,
-                                        &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui, num_threads);
+                                               pasos, pixel_buffer,
+                                               &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui, num_threads);
                     if (iter_actual_ui < static_cast<uint32_t>(max_iteraciones))
                         tiempo_ejecucion_ui = solver_clock.getElapsedTime().asSeconds() * 1000.0;
                 }
@@ -340,13 +350,14 @@ int main()
         }
 
         auto msg = fmt::format(
-            "Backend: {} | Iter: {}/{} | Residuo L2: {} | MFLOPS: {:.1f} | Modo: {} | FPS: {} | CFL: {}{}",
+            "Backend: {} | Iter: {}/{} | Residuo L2: {} | MFLOPS: {:.1f} \n| Modo: {} | FPS: {} | CFL: {} | \nHilos config: {}/{}{}",
             mode, iter_actual_ui,
             max_iteraciones,
             (residuo_ui < 0.0) ? std::string("N/A") : fmt::format("{:.6e}", residuo_ui),
             mflops_ui,
             modo_continuo ? "CONTINUO" : "PASO A PASO", fps,
             estado_cfl,
+            num_threads, max_threads_disponibles,
             extra_info);
         text.setString(msg);
 
