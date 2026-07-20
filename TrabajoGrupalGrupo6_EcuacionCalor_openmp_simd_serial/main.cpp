@@ -30,6 +30,9 @@ bool solicitar_paso = false;
 uint32_t iter_actual_ui = 0;
 double residuo_ui = 1e9;
 double mflops_ui = 0.0;
+uint32_t threads_ui = 0;
+double tiempo_ejecucion_ui = 0.0;
+bool acumulando_tiempo_continuo = false;
 
 // textura (uint32_t tipo de dato sin signo de 16/32/64 etc)
 uint32_t *pixel_buffer = nullptr;
@@ -109,12 +112,18 @@ int main()
                     break;
                 case sf::Keyboard::Scan::Num1:
                     r_type = runtime_type::SERIAL_1;
+                    tiempo_ejecucion_ui = 0.0;
+                    acumulando_tiempo_continuo = false;
                     break;
                 case sf::Keyboard::Scan::Num2:
                     r_type = runtime_type::SIMD;
+                    tiempo_ejecucion_ui = 0.0;
+                    acumulando_tiempo_continuo = false;
                     break;
                 case sf::Keyboard::Scan::Num3:
                     r_type = runtime_type::OPENMP;
+                    tiempo_ejecucion_ui = 0.0;
+                    acumulando_tiempo_continuo = false;
                     break;
                 case sf::Keyboard::Scan::Space:
                     modo_continuo = !modo_continuo; // alterna paso a paso / continuo
@@ -139,9 +148,31 @@ int main()
                 solicitar_paso = false;
             }
 
-            ecuacionCalorSerial(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
-                                pasos, pixel_buffer,
-                                &iter_actual_ui, &residuo_ui, &mflops_ui);
+            bool solver_terminado = iter_actual_ui >= static_cast<uint32_t>(max_iteraciones);
+            if (modo_continuo && !solver_terminado)
+            {
+                if (!acumulando_tiempo_continuo)
+                {
+                    tiempo_ejecucion_ui = 0.0;
+                    acumulando_tiempo_continuo = true;
+                }
+
+                sf::Clock solver_clock;
+                ecuacionCalorSerial(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
+                                    pasos, pixel_buffer,
+                                    &iter_actual_ui, &residuo_ui, &mflops_ui);
+                tiempo_ejecucion_ui += solver_clock.getElapsedTime().asSeconds() * 1000.0;
+            }
+            else if (!solver_terminado)
+            {
+                acumulando_tiempo_continuo = false;
+                sf::Clock solver_clock;
+                ecuacionCalorSerial(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
+                                    pasos, pixel_buffer,
+                                    &iter_actual_ui, &residuo_ui, &mflops_ui);
+                tiempo_ejecucion_ui = solver_clock.getElapsedTime().asSeconds() * 1000.0;
+            }
+            threads_ui = 0;
             mode = "SERIAL 1";
         }
         else if (r_type == runtime_type::SIMD)
@@ -155,9 +186,31 @@ int main()
                 solicitar_paso = false;
             }
 
-            ecuacion_Calor_SIMD(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
-                                pasos, pixel_buffer,
-                                &iter_actual_ui, &residuo_ui, &mflops_ui);
+            bool solver_terminado = iter_actual_ui >= static_cast<uint32_t>(max_iteraciones);
+            if (modo_continuo && !solver_terminado)
+            {
+                if (!acumulando_tiempo_continuo)
+                {
+                    tiempo_ejecucion_ui = 0.0;
+                    acumulando_tiempo_continuo = true;
+                }
+
+                sf::Clock solver_clock;
+                ecuacion_Calor_SIMD(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
+                                    pasos, pixel_buffer,
+                                    &iter_actual_ui, &residuo_ui, &mflops_ui);
+                tiempo_ejecucion_ui += solver_clock.getElapsedTime().asSeconds() * 1000.0;
+            }
+            else if (!solver_terminado)
+            {
+                acumulando_tiempo_continuo = false;
+                sf::Clock solver_clock;
+                ecuacion_Calor_SIMD(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
+                                    pasos, pixel_buffer,
+                                    &iter_actual_ui, &residuo_ui, &mflops_ui);
+                tiempo_ejecucion_ui = solver_clock.getElapsedTime().asSeconds() * 1000.0;
+            }
+            threads_ui = 0;
             mode = "SIMD";
         }
         else if (r_type == runtime_type::OPENMP)
@@ -171,9 +224,38 @@ int main()
                 solicitar_paso = false;
             }
 
-            ecuacion_calor_openmp_regiones(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
-                                pasos, pixel_buffer,
-                                &iter_actual_ui, &residuo_ui, &mflops_ui);
+            bool solver_terminado = iter_actual_ui >= static_cast<uint32_t>(max_iteraciones);
+
+            if (modo_continuo && !solver_terminado)
+            {
+                if (!acumulando_tiempo_continuo)
+                {
+                    tiempo_ejecucion_ui = 0.0;
+                    acumulando_tiempo_continuo = true;
+                }
+
+                sf::Clock solver_clock;
+
+                ecuacion_calor_openmp_regiones(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
+                                    pasos, pixel_buffer,
+                                    &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui);
+                tiempo_ejecucion_ui += solver_clock.getElapsedTime().asSeconds() * 1000.0;
+            }
+            else
+            {
+                if (!solver_terminado)
+                {
+                    acumulando_tiempo_continuo = false;
+                    tiempo_ejecucion_ui = 0.0;
+
+                    sf::Clock solver_clock;
+                    ecuacion_calor_openmp_regiones(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
+                                        pasos, pixel_buffer,
+                                        &iter_actual_ui, &residuo_ui, &mflops_ui, &threads_ui);
+                    if (iter_actual_ui < static_cast<uint32_t>(max_iteraciones))
+                        tiempo_ejecucion_ui = solver_clock.getElapsedTime().asSeconds() * 1000.0;
+                }
+            }
             mode = "OPENMP";
         }
 
@@ -190,15 +272,39 @@ int main()
         // overlay esquina superior izquierda
         std::string estado_cfl = (residuo_ui < 0.0) ? "INESTABLE (r > 0.25, ajusta dt/Nx/alpha)" : "OK";
 
+        auto format_time_hms = [](double milisegundos)
+        {
+            int total_milisegundos = static_cast<int>(milisegundos);
+            int minutos = total_milisegundos / 60000;
+            int segundos = (total_milisegundos % 60000) / 1000;
+            int ms = total_milisegundos % 1000;
+            return fmt::format("{:02d}:{:02d}:{:03d}", minutos, segundos, ms);
+        };
+
+        std::string extra_info = "";
+        if (modo_continuo)
+            extra_info = fmt::format("\nTiempo total de ejecucion: {}", format_time_hms(tiempo_ejecucion_ui));
+
+        if (r_type == runtime_type::OPENMP)
+        {
+            extra_info = fmt::format("\nHilos OpenMP: {}{}",
+                                     threads_ui,
+                                     modo_continuo ? fmt::format("\nTiempo total de ejecucion: {}", format_time_hms(tiempo_ejecucion_ui)) : "");
+        }
+
         auto msg = fmt::format(
-            "Backend: {} | Iter: {}/{} | Residuo L2: {} | MFLOPS: {:.1f} | Modo: {} | FPS: {} | CFL: {}",
+            "Backend: {} | Iter: {}/{} | Residuo L2: {} | MFLOPS: {:.1f} | Modo: {} | FPS: {} | CFL: {}{}",
             mode, iter_actual_ui,
             max_iteraciones,
             (residuo_ui < 0.0) ? std::string("N/A") : fmt::format("{:.6e}", residuo_ui),
             mflops_ui,
             modo_continuo ? "CONTINUO" : "PASO A PASO", fps,
-            estado_cfl);
+            estado_cfl,
+            extra_info);
         text.setString(msg);
+        auto bounds = text.getLocalBounds();
+        text.setOrigin({bounds.position.x + bounds.size.x / 2.0f, bounds.position.y + bounds.size.y / 2.0f});
+        text.setPosition({window.getView().getSize().x / 2.0f, window.getView().getSize().y / 2.0f});
         // Clear screen
         window.clear();
         {

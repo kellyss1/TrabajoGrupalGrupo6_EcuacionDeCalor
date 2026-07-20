@@ -105,7 +105,8 @@ void ecuacion_calor_openmp_regiones(
     uint32_t *pixel_buffer,
     uint32_t *iter_out,
     double *residuo_out,
-    double *mflops_out)
+    double *mflops_out,
+    uint32_t *threads_out)
 {
     static std::vector<double> u, u_new;
     static uint32_t iter_actual = 0;
@@ -143,6 +144,7 @@ void ecuacion_calor_openmp_regiones(
 
     auto t1 = std::chrono::high_resolution_clock::now();
     double segundos = std::chrono::duration<double>(t1 - t0).count();
+    uint32_t thread_count_observed = 0;
 
     uint32_t pasos_hechos = iter_actual - iter_antes;
     double flops_totales = (double)pasos_hechos * (Nx - 2) * (Ny - 2) * 7.0;
@@ -153,6 +155,11 @@ void ecuacion_calor_openmp_regiones(
     {
         int thread_count = omp_get_num_threads();
         int thread_id = omp_get_thread_num();
+
+        #pragma omp single
+        {
+            thread_count_observed = static_cast<uint32_t>(thread_count);
+        }
 
         uint32_t delta = (Ny + thread_count - 1) / thread_count; //techo para evitar casteos
         uint32_t start = thread_id * delta;
@@ -174,4 +181,6 @@ void ecuacion_calor_openmp_regiones(
     // si es inestable, usamos -1.0 como valor centinela para que main.cpp lo detecte y avise
     *residuo_out = estable ? residuo_actual : -1.0;
     *mflops_out = mflops;
+    if (threads_out)
+        *threads_out = thread_count_observed;
 }
