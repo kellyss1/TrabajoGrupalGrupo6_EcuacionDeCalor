@@ -148,6 +148,7 @@ int main(int argc, char **argv)
                 ecuacionCalorMPI(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
                                  pasos, rank, nprocs, delta, row_start, valid_rows,
                                  pixel_buffer, &iter_ui, &residuo_ui, &mflops_ui, &mflops_total_ui);
+                tiempo_ejecucion_ui += solver_clock.getElapsedTime().asSeconds() * 1000.0;
             }
             else if (!solver_terminado)
             {
@@ -155,7 +156,7 @@ int main(int argc, char **argv)
                 ecuacionCalorMPI(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
                                  pasos, rank, nprocs, delta, row_start, valid_rows,
                                  pixel_buffer, &iter_ui, &residuo_ui, &mflops_ui, &mflops_total_ui);
-                tiempo_ejecucion_ui = solver_clock.getElapsedTime().asSeconds() * 1000.0;
+                tiempo_ejecucion_ui += solver_clock.getElapsedTime().asSeconds() * 1000.0;
             }
             else
             {
