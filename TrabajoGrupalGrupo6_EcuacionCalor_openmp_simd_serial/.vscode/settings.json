@@ -8,5 +8,5 @@
     "CMAKE_TOOLCHAIN_FILE":"c:/tools/vcpkg-2026.03.18/scripts/buildsystems/vcpkg.cmake",
     "VCPKG_TARGET_TRIPLET":"x64-mingw-dynamic"
 },
-"cmake.sourceDirectory": "C:/Users/Kellyss/Documents/Workspace/TrabajoGrupalGrupo6_EcuacionDeCalor/TrabajoGrupalGrupo6_EcuacionCalor_openmp_simd_serial"
+"cmake.sourceDirectory": "C:/tools/TrabajoGrupalGrupo6_EcuacionDeCalor/TrabajoGrupalGrupo6_EcuacionCalor_openmp_simd_serial"
 }

@@ -76,6 +76,8 @@ int main(int argc, char **argv)
         sf::Clock clock;
         uint32_t iter_ui = 0;
         double residuo_ui = 1e9, mflops_ui = 0.0, mflops_total_ui = 0.0;
+        double ultimo_mflops = 0.0;
+        double ultimo_mflops_total = 0.0;
         double tiempo_ejecucion_ui = 0.0;
         bool acumulando_tiempo_continuo = false;
 
@@ -146,7 +148,6 @@ int main(int argc, char **argv)
                 ecuacionCalorMPI(Nx, Ny, Lx, Ly, alpha, dt, (uint32_t)max_iteraciones, tol,
                                  pasos, rank, nprocs, delta, row_start, valid_rows,
                                  pixel_buffer, &iter_ui, &residuo_ui, &mflops_ui, &mflops_total_ui);
-                tiempo_ejecucion_ui += solver_clock.getElapsedTime().asSeconds() * 1000.0;
             }
             else if (!solver_terminado)
             {
@@ -162,7 +163,11 @@ int main(int argc, char **argv)
                                  pasos, rank, nprocs, delta, row_start, valid_rows,
                                  pixel_buffer, &iter_ui, &residuo_ui, &mflops_ui, &mflops_total_ui);
             }
+            if (mflops_ui > 0.0)
+                ultimo_mflops = mflops_ui;
 
+            if (mflops_total_ui > 0.0)
+                ultimo_mflops_total = mflops_total_ui;
             // Gather que junta la porcion de todos los ranks
             MPI_Gather(
                 pixel_buffer, Nx * delta, MPI_UNSIGNED,
@@ -196,7 +201,7 @@ int main(int argc, char **argv)
 
             auto msg = fmt::format(
                 "Backend: MPI ({} procs) | Iter: {}/{} | Residuo L2: {:.6e} | MFLOPS total: {:.1f} | Modo: {} | FPS: {}{}",
-                nprocs, iter_ui, max_iteraciones, residuo_ui, mflops_total_ui,
+                nprocs, iter_ui, max_iteraciones, residuo_ui, ultimo_mflops_total,
                 modo_continuo ? "CONTINUO" : "PASO A PASO", fps,
                 modo_continuo ? fmt::format("\n| Tiempo total de ejecucion: {}", format_time_hms(tiempo_ejecucion_ui)) : std::string(""));
             text.setString(msg);
