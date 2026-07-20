@@ -302,9 +302,7 @@ int main()
             estado_cfl,
             extra_info);
         text.setString(msg);
-        auto bounds = text.getLocalBounds();
-        text.setOrigin({bounds.position.x + bounds.size.x / 2.0f, bounds.position.y + bounds.size.y / 2.0f});
-        text.setPosition({window.getView().getSize().x / 2.0f, window.getView().getSize().y / 2.0f});
+
         // Clear screen
         window.clear();
         {
