@@ -52,7 +52,6 @@ static void paso_calor_simd(
         }
     }
 
-    // --- 2. Calcular el residuo (norma L2) con SIMD + escalar ---
     __m256d suma_cuadrados = _mm256_setzero_pd();
     double suma_escalar = 0.0;
 
